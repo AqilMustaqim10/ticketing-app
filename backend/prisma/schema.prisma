@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Business Unit Model representing distinct corporate entities (CCEC, FNB, HOTEL)
+model BusinessUnit {
+  id          Int          @id @default(autoincrement())
+  name        String       // Full name of the Business Unit
+  code        String       @unique // Short code: CCEC, FNB, HOTEL
+  departments Department[]
+  users       User[]
+  tickets     Ticket[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// Department Model belonging to a specific Business Unit
+model Department {
+  id             Int          @id @default(autoincrement())
+  name           String       // Department name (e.g., IT Support, Front Office, Operations)
+  code           String       // Department code
+  businessUnitId Int          // Foreign Key to BusinessUnit
+  businessUnit   BusinessUnit @relation(fields: [businessUnitId], references: [id], onDelete: Cascade)
+  users          User[]
+  tickets        Ticket[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// User Model with Role-Based Access Control and Business Unit scoping
+model User {
+  id             Int          @id @default(autoincrement())
+  username       String       @unique // Unique login handle
+  password       String       // Hashed password string using bcrypt
+  fullName       String       // User's full display name
+  role           String       // Role: "ADMIN", "AGENT", or "USER"
+  businessUnitId Int          // Business Unit association
+  businessUnit   BusinessUnit @relation(fields: [businessUnitId], references: [id], onDelete: Cascade)
+  departmentId   Int          // Department association
+  department     Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  
+  // Relations for tickets
+  createdTickets Ticket[]     @relation("TicketCreator")
+  assignedTickets Ticket[]    @relation("TicketAssignee")
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// Ticket Model for IT Support issues tracking
+model Ticket {
+  id             Int          @id @default(autoincrement())
+  ticketNumber   String       @unique // Unique ticket reference (e.g., TCK-1001)
+  title          String       // Short summary of the issue
+  description    String       // Detailed explanation of the issue
+  status         String       // Status: "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"
+  priority       String       // Priority: "LOW", "MEDIUM", "HIGH", "URGENT"
+  
+  createdById    Int          // User who created the ticket
+  createdBy      User         @relation("TicketCreator", fields: [createdById], references: [id])
+  
+  assignedToId   Int?         // Agent assigned to resolve the ticket (Optional)
+  assignedTo     User?        @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  
+  businessUnitId Int          // Business Unit scope
+  businessUnit   BusinessUnit @relation(fields: [businessUnitId], references: [id])
+  
+  departmentId   Int          // Department scope
+  department     Department   @relation(fields: [departmentId], references: [id])
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}

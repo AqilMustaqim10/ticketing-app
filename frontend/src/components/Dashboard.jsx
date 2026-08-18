@@ -1,12 +1,12 @@
 /**
- * Dashboard Component (Phase 4)
+ * Dashboard Component (Phase 5)
  *
- * Displays analytics Stat Cards, Timeframe filters, Business Unit selectors,
- * and dynamic color-coded priority/status badges.
+ * Includes Stat Cards, filters, and New Ticket creation modal trigger.
  */
 
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
+import CreateTicketModal from "./CreateTicketModal";
 import {
   LogOut,
   Calendar,
@@ -15,12 +15,14 @@ import {
   ShieldAlert,
   Clock,
   CheckCircle2,
+  Plus,
 } from "lucide-react";
 
 export default function Dashboard({ user, onLogout }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Filter states
   const [timeframe, setTimeframe] = useState("ALL");
@@ -69,7 +71,6 @@ export default function Dashboard({ user, onLogout }) {
     return true;
   });
 
-  // Calculate Stat Card Metrics from filtered tickets
   const totalCount = filteredTickets.length;
   const openCount = filteredTickets.filter((t) => t.status === "OPEN").length;
   const inProgressCount = filteredTickets.filter(
@@ -79,7 +80,6 @@ export default function Dashboard({ user, onLogout }) {
     (t) => t.status === "RESOLVED" || t.status === "CLOSED",
   ).length;
 
-  // Helper for Priority Badge Styling
   const getPriorityBadge = (priority) => {
     switch (priority) {
       case "URGENT":
@@ -94,7 +94,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Helper for Status Badge Styling
   const getStatusBadge = (status) => {
     switch (status) {
       case "OPEN":
@@ -126,13 +125,22 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        <button
-          onClick={onLogout}
-          className="flex items-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition"
-        >
-          <LogOut size={16} />
-          <span>Sign Out</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-600/30"
+          >
+            <Plus size={16} />
+            <span>New Ticket</span>
+          </button>
+          <button
+            onClick={onLogout}
+            className="flex items-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition"
+          >
+            <LogOut size={16} />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
@@ -306,6 +314,15 @@ export default function Dashboard({ user, onLogout }) {
           )}
         </div>
       </main>
+
+      {/* New Ticket Modal */}
+      {isModalOpen && (
+        <CreateTicketModal
+          user={user}
+          onClose={() => setIsModalOpen(false)}
+          onTicketCreated={fetchTickets}
+        />
+      )}
     </div>
   );
 }

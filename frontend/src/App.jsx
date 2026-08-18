@@ -1,7 +1,5 @@
 /**
  * Main App Component
- *
- * Manages user session state and switches between Login and Dashboard views.
  */
 
 import React, { useState, useEffect } from "react";
@@ -12,26 +10,29 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Check if user session exists in localStorage on mount
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
   }, []);
 
-  const handleLoginSuccess = (userData) => {
+  const handleLogin = (userData) => {
     setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
     setUser(null);
+    localStorage.removeItem("user");
   };
 
-  if (!user) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  return <Dashboard user={user} onLogout={handleLogout} />;
+  return (
+    <div className="min-h-screen w-full m-0 p-0 overflow-x-hidden">
+      {!user ? (
+        <Login onLogin={handleLogin} />
+      ) : (
+        <Dashboard user={user} onLogout={handleLogout} />
+      )}
+    </div>
+  );
 }

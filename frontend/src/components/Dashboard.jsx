@@ -1,12 +1,14 @@
 /**
- * Dashboard Component (Phase 5)
+ * Dashboard Component (Phase 6 Final)
  *
- * Includes Stat Cards, filters, and New Ticket creation modal trigger.
+ * Fully integrated multi-tenant ticketing dashboard with stat cards, filters,
+ * creation modals, and interactive status management.
  */
 
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
 import CreateTicketModal from "./CreateTicketModal";
+import TicketDetailModal from "./TicketDetailModal";
 import {
   LogOut,
   Calendar,
@@ -22,7 +24,8 @@ export default function Dashboard({ user, onLogout }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
 
   // Filter states
   const [timeframe, setTimeframe] = useState("ALL");
@@ -127,7 +130,7 @@ export default function Dashboard({ user, onLogout }) {
 
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => setIsCreateModalOpen(true)}
             className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-600/30"
           >
             <Plus size={16} />
@@ -248,7 +251,9 @@ export default function Dashboard({ user, onLogout }) {
             <h2 className="text-lg font-bold text-white">
               Support Tickets ({filteredTickets.length})
             </h2>
-            <span className="text-xs text-slate-400">Filtered view active</span>
+            <span className="text-xs text-slate-400">
+              Click any row to manage status
+            </span>
           </div>
 
           {loading ? (
@@ -278,7 +283,8 @@ export default function Dashboard({ user, onLogout }) {
                   {filteredTickets.map((ticket) => (
                     <tr
                       key={ticket.id}
-                      className="hover:bg-slate-800/30 transition"
+                      onClick={() => setSelectedTicket(ticket)}
+                      className="hover:bg-slate-800/50 transition cursor-pointer"
                     >
                       <td className="py-4 px-6 font-mono text-indigo-400 font-medium">
                         {ticket.ticketNumber}
@@ -316,11 +322,21 @@ export default function Dashboard({ user, onLogout }) {
       </main>
 
       {/* New Ticket Modal */}
-      {isModalOpen && (
+      {isCreateModalOpen && (
         <CreateTicketModal
           user={user}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => setIsCreateModalOpen(false)}
           onTicketCreated={fetchTickets}
+        />
+      )}
+
+      {/* Ticket Detail / Status Update Modal */}
+      {selectedTicket && (
+        <TicketDetailModal
+          ticket={selectedTicket}
+          user={user}
+          onClose={() => setSelectedTicket(null)}
+          onTicketUpdated={fetchTickets}
         />
       )}
     </div>

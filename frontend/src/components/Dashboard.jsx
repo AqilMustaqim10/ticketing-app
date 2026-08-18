@@ -1,21 +1,20 @@
 /**
- * Dashboard Component
+ * Dashboard Component (Phase 4)
  *
- * Displays tickets with Timeframe filters (Daily, Weekly, Monthly, Yearly)
- * and Business Unit scoping selectors based on user roles.
+ * Displays analytics Stat Cards, Timeframe filters, Business Unit selectors,
+ * and dynamic color-coded priority/status badges.
  */
 
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
 import {
   LogOut,
-  Filter,
   Calendar,
   Building,
-  Plus,
-  CheckCircle,
+  Layers,
+  ShieldAlert,
   Clock,
-  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 
 export default function Dashboard({ user, onLogout }) {
@@ -24,10 +23,9 @@ export default function Dashboard({ user, onLogout }) {
   const [error, setError] = useState("");
 
   // Filter states
-  const [timeframe, setTimeframe] = useState("ALL"); // ALL, DAILY, WEEKLY, MONTHLY, YEARLY
-  const [selectedBU, setSelectedBU] = useState("ALL"); // ALL or specific BU code
+  const [timeframe, setTimeframe] = useState("ALL");
+  const [selectedBU, setSelectedBU] = useState("ALL");
 
-  // Fetch tickets on mount
   useEffect(() => {
     fetchTickets();
   }, []);
@@ -44,14 +42,11 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Filter tickets based on Timeframe and Business Unit selection
   const filteredTickets = tickets.filter((ticket) => {
-    // Business Unit filter logic
     if (selectedBU !== "ALL" && ticket.businessUnit.code !== selectedBU) {
       return false;
     }
 
-    // Timeframe filter logic
     if (timeframe === "ALL") return true;
 
     const ticketDate = new Date(ticket.createdAt);
@@ -74,12 +69,51 @@ export default function Dashboard({ user, onLogout }) {
     return true;
   });
 
+  // Calculate Stat Card Metrics from filtered tickets
+  const totalCount = filteredTickets.length;
+  const openCount = filteredTickets.filter((t) => t.status === "OPEN").length;
+  const inProgressCount = filteredTickets.filter(
+    (t) => t.status === "IN_PROGRESS",
+  ).length;
+  const resolvedCount = filteredTickets.filter(
+    (t) => t.status === "RESOLVED" || t.status === "CLOSED",
+  ).length;
+
+  // Helper for Priority Badge Styling
+  const getPriorityBadge = (priority) => {
+    switch (priority) {
+      case "URGENT":
+        return "bg-red-500/10 text-red-400 border-red-500/30 animate-pulse";
+      case "HIGH":
+        return "bg-orange-500/10 text-orange-400 border-orange-500/30";
+      case "MEDIUM":
+        return "bg-yellow-500/10 text-yellow-400 border-yellow-500/30";
+      case "LOW":
+      default:
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+    }
+  };
+
+  // Helper for Status Badge Styling
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "OPEN":
+        return "bg-blue-500/10 text-blue-400 border-blue-500/30";
+      case "IN_PROGRESS":
+        return "bg-purple-500/10 text-purple-400 border-purple-500/30";
+      case "RESOLVED":
+      case "CLOSED":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+      default:
+        return "bg-slate-800 text-slate-400 border-slate-700";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Top Navigation Header */}
       <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <div className="bg-indigo-600/20 text-indigo-400 p-2 rounded-lg font-bold border border-indigo-500/30">
+          <div className="bg-indigo-600/20 text-indigo-400 px-3 py-1 rounded-lg text-xs font-bold border border-indigo-500/30">
             {user.role}
           </div>
           <div>
@@ -101,11 +135,9 @@ export default function Dashboard({ user, onLogout }) {
         </button>
       </header>
 
-      {/* Main Container */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Filter Controls Bar */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* Timeframe Filters */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
           <div className="flex items-center space-x-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center mr-2">
               <Calendar size={14} className="mr-1" /> Timeframe:
@@ -125,7 +157,6 @@ export default function Dashboard({ user, onLogout }) {
             ))}
           </div>
 
-          {/* Business Unit Selector (Admin sees all, agents/users scoped) */}
           <div className="flex items-center space-x-3 w-full md:w-auto justify-end">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center">
               <Building size={14} className="mr-1" /> Business Unit:
@@ -144,15 +175,72 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
+        {/* Stat Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Total Tickets
+              </p>
+              <h3 className="text-3xl font-extrabold text-white mt-2">
+                {totalCount}
+              </h3>
+            </div>
+            <div className="bg-indigo-500/10 text-indigo-400 p-3 rounded-xl border border-indigo-500/20">
+              <Layers size={24} />
+            </div>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">
+                Open Tickets
+              </p>
+              <h3 className="text-3xl font-extrabold text-white mt-2">
+                {openCount}
+              </h3>
+            </div>
+            <div className="bg-blue-500/10 text-blue-400 p-3 rounded-xl border border-blue-500/20">
+              <ShieldAlert size={24} />
+            </div>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-purple-400">
+                In Progress
+              </p>
+              <h3 className="text-3xl font-extrabold text-white mt-2">
+                {inProgressCount}
+              </h3>
+            </div>
+            <div className="bg-purple-500/10 text-purple-400 p-3 rounded-xl border border-purple-500/20">
+              <Clock size={24} />
+            </div>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                Resolved / Closed
+              </p>
+              <h3 className="text-3xl font-extrabold text-white mt-2">
+                {resolvedCount}
+              </h3>
+            </div>
+            <div className="bg-emerald-500/10 text-emerald-400 p-3 rounded-xl border border-emerald-500/20">
+              <CheckCircle2 size={24} />
+            </div>
+          </div>
+        </div>
+
         {/* Ticket List Section */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
           <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
             <h2 className="text-lg font-bold text-white">
               Support Tickets ({filteredTickets.length})
             </h2>
-            <span className="text-xs text-slate-400">
-              Showing filtered results
-            </span>
+            <span className="text-xs text-slate-400">Filtered view active</span>
           </div>
 
           {loading ? (
@@ -190,16 +278,20 @@ export default function Dashboard({ user, onLogout }) {
                       <td className="py-4 px-6 text-white font-medium">
                         {ticket.title}
                       </td>
-                      <td className="py-4 px-6 text-slate-300">
+                      <td className="py-4 px-6 text-slate-300 font-semibold">
                         {ticket.businessUnit?.code}
                       </td>
                       <td className="py-4 px-6">
-                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getPriorityBadge(ticket.priority)}`}
+                        >
                           {ticket.priority}
                         </span>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(ticket.status)}`}
+                        >
                           {ticket.status}
                         </span>
                       </td>

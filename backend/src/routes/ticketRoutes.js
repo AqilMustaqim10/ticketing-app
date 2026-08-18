@@ -1,31 +1,82 @@
-/**
- * Ticket Routes
- *
- * Maps ticket endpoints to controller actions with authentication middleware protection.
- */
-
 const express = require("express");
 const router = express.Router();
-const ticketController = require("../controllers/ticketController");
-const { verifyToken, authorizeRoles } = require("../middleware/authMiddleware");
+const prisma = require("../config/db");
 
-// All ticket routes require a valid JWT token
-router.use(verifyToken);
+// GET all tickets
+router.get("/", async (req, res) => {
+  try {
+    const tickets = await prisma.ticket.findMany({
+      include: {
+        businessUnit: true,
+        department: true,
+        createdBy: true,
+        assignedTo: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(tickets);
+  } catch (error) {
+    console.error("Error fetching tickets:", error);
+    res.status(500).json({ error: "Failed to fetch tickets." });
+  }
+});
 
-// GET /api/tickets - Fetch tickets based on role scope
-router.get("/", ticketController.getTickets);
+// POST create a new ticket
+router.post("/", async (req, res) => {
+  try {
+    const { title, description, priority, departmentId, businessUnitId } =
+      req.body;
 
-// POST /api/tickets - Create a new support ticket (All roles can create)
-router.post("/", ticketController.createTicket);
+    // Generate unique ticket reference number
+    const ticketNumber = `TCK-${Math.floor(1000 + Math.random() * 9000)}`;
 
-// PUT /api/tickets/:id - Update ticket details / status
-router.put("/:id", ticketController.updateTicket);
+    const newTicket = await prisma.ticket.create({
+      data: {
+        ticketNumber,
+        title,
+        description,
+        priority: priority || "MEDIUM",
+        status: "OPEN",
+        departmentId: parseInt(departmentId),
+        businessUnitId: parseInt(businessUnitId),
+        createdById: 1, // Fallback creator ID for current context
+      },
+      include: {
+        businessUnit: true,
+        department: true,
+        createdBy: true,
+      },
+    });
 
-// DELETE /api/tickets/:id - Delete ticket (Admin and Agents only)
-router.delete(
-  "/:id",
-  authorizeRoles("ADMIN", "AGENT"),
-  ticketController.deleteTicket,
-);
+    res.status(201).json(newTicket);
+  } catch (error) {
+    console.error("Error creating ticket:", error);
+    res.status(500).json({ error: "Failed to create ticket." });
+  }
+});
+
+// PATCH ticket status
+router.patch("/:id/status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: parseInt(id) },
+      data: { status },
+      include: {
+        businessUnit: true,
+        department: true,
+        createdBy: true,
+        assignedTo: true,
+      },
+    });
+
+    res.json(updatedTicket);
+  } catch (error) {
+    console.error("Error updating ticket status:", error);
+    res.status(500).json({ error: "Failed to update ticket status." });
+  }
+});
 
 module.exports = router;
